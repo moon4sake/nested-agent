@@ -19,7 +19,7 @@ import os
 
 from dotenv import load_dotenv
 
-from smolagents import CodeAgent, HfApiModel, LiteLLMModel, Model, OpenAIServerModel, Tool, TransformersModel
+from smolagents import CodeAgent, HfApiModel, LiteLLMModel, Model, Tool, TransformersModel
 from smolagents.default_tools import TOOL_MAPPING
 
 
@@ -39,7 +39,7 @@ def parse_arguments():
         "--model-type",
         type=str,
         default="HfApiModel",
-        help="The model type to use (e.g., HfApiModel, OpenAIServerModel, LiteLLMModel, TransformersModel)",
+        help="The model type to use (e.g., HfApiModel, LiteLLMModel, TransformersModel)",
     )
     parser.add_argument(
         "--model-id",
@@ -81,10 +81,9 @@ def parse_arguments():
 
 def load_model(model_type: str, model_id: str, api_base: str | None = None, api_key: str | None = None) -> Model:
     if model_type == "OpenAIServerModel":
-        return OpenAIServerModel(
-            api_key=api_key or os.getenv("FIREWORKS_API_KEY"),
-            api_base=api_base or "https://api.fireworks.ai/inference/v1",
-            model_id=model_id,
+        raise ValueError(
+            "OpenAIServerModel is disabled to avoid OpenAI-compatible API calls. "
+            "Use LiteLLMModel, TransformersModel, or HfApiModel instead."
         )
     elif model_type == "LiteLLMModel":
         return LiteLLMModel(

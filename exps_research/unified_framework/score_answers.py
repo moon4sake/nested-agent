@@ -1,14 +1,10 @@
 import os
 import json
-import time
 from typing import Dict, List
-from smolagents import OpenAIServerModel
-from datetime import datetime
 from pathlib import Path
 from copy import deepcopy
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from tqdm import tqdm
-from pydantic import BaseModel
 
 try:
     from .math_utils.qwen_math_parser import extract_answer
@@ -17,102 +13,8 @@ except ImportError:
     from math_utils.qwen_math_parser import extract_answer
     from math_utils.qwen_math_grader import math_equal
 
-class ResponseFormat(BaseModel):
-    explanation: str
-    score: int
-
-def load_api_key() -> str:
-    """Load OpenAI API key from file or environment variable"""
-    import os
-    # First try environment variable
-    api_key = os.getenv("OPENAI_API_KEY")
-    if api_key:
-        return api_key
-    
-    # Fall back to file
-    key_path = "keys/openai-key/key.env"
-    if os.path.exists(key_path):
-        with open(key_path) as f:
-            return f.read().strip()
-    
-    raise FileNotFoundError(
-        f"OpenAI API key not found. Please either:\n"
-        f"1. Set the OPENAI_API_KEY environment variable, or\n"
-        f"2. Create the file '{key_path}' containing your API key"
-    )
-
-def setup_scoring_model() -> OpenAIServerModel:
-    """Initialize the OpenAI model for scoring"""
-    api_key = load_api_key()
-    return OpenAIServerModel(
-        model_id="gpt-4o-mini",
-        api_key=api_key
-    )
-
-def calculate_cost(input_tokens: int, output_tokens: int) -> float:
-    """Calculate cost based on GPT-4 pricing"""
-    # GPT-4o-mini pricing (as of 2024)
-    INPUT_COST_PER_1M = 0.15  # $0.15 per 1M input tokens
-    OUTPUT_COST_PER_1M = 0.6  # $0.6 per 1M output tokens
-
-    input_cost = (input_tokens / 1000000) * INPUT_COST_PER_1M
-    output_cost = (output_tokens / 1000000) * OUTPUT_COST_PER_1M
-
-    return input_cost + output_cost
-
-def evaluate_factual_answer(
-    model: OpenAIServerModel,
-    predicted: str,
-    gold: str,
-    question: str,
-    do_extract_answer: bool = False) -> Dict:
-    """
-    Evaluate if the predicted answer matches the gold answer using the model
-    Returns dict with score and explanation
-    """
-    if len(str(predicted)) > 1000:
-        predicte = predicted[:1000]
-    prompt = f"""Compare the following predicted answer with the gold (correct) answer and determine if they match in meaning given the question.
-Be reasonable - phrasing differences are okay if the core meaning is the same. You should accept the aliases and the answer conveying the same conclusion.
-If the predicted answer is overly verbose and fails to capture the key information found in the gold answer (i.e., low recall), consider it a false answer.
-
-Question: {question}
-Predicted answer: {predicted}
-Gold answer: {gold}
-
-Output your evaluation as a JSON object with two fields:
-- explanation: Brief explanation of your scoring decision
-- score: 0 or 1 indicating if answers match
-"""
-
-    response = model(
-        messages=[{
-            "role": "user",
-            "content": prompt
-        }],
-        response_format=ResponseFormat
-    )
-
-    # Parse JSON response
-    result = json.loads(response.content)
-
-    # Get token counts and calculate cost
-    token_counts = model.get_token_counts()
-    cost = calculate_cost(
-        token_counts["input_token_count"],
-        token_counts["output_token_count"]
-    )
-
-    return {
-        "score": result["score"],
-        "explanation": result["explanation"],
-        "input_tokens": token_counts["input_token_count"],
-        "output_tokens": token_counts["output_token_count"],
-        "cost": cost
-    }
-
 def evaluate_math_answer(
-    model: OpenAIServerModel,
+    model,
     predicted: str,
     gold: str,
     question: str,
@@ -167,10 +69,10 @@ def process_entry(args):
     [IMPLEMENT THE CORRECTNESS DETERMINING FUNCTION HERE]
     """
     if task_type == "fact":
-        eval_func = evaluate_factual_answer
-        # Fact tasks require the model
-        if model is None:
-            raise ValueError("Model is required for fact task evaluation")
+        raise ValueError(
+            "Fact-task scoring requires OpenAI-backed models, which are disabled. "
+            "Use task_type='math' or provide a local scorer."
+        )
     elif task_type == "math":
         eval_func = evaluate_math_answer
         # Math tasks don't need the model (it's ignored in evaluate_math_answer)
@@ -230,13 +132,13 @@ def score_qa_results(
                 continue # Invalid entry
             entries.append(entry)
 
-    # Only create models if we need them (fact tasks use OpenAI, math tasks don't)
-    if task_type == "math":
-        # Math tasks don't need OpenAI models - they use direct comparison
-        models = [None] * max_workers
-    else:
-        # Create a pool of models for fact tasks
-        models = [setup_scoring_model() for _ in range(max_workers)]
+    if task_type == "fact":
+        raise ValueError(
+            "Fact-task scoring requires OpenAI-backed models, which are disabled. "
+            "Use task_type='math' or provide a local scorer."
+        )
+    # Math tasks don't need models - they use direct comparison
+    models = [None] * max_workers
     # Process entries in parallel
     if single_thread:
         # Process entries sequentially with a for-loop

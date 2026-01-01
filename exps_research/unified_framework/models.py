@@ -2,45 +2,25 @@
 Unified model setup for experiments
 """
 
-import os
 from typing import Dict, Any, Optional, Union
 
-from smolagents import OpenAIServerModel, VLLMServerModel, VLLMModel
-
-
-def load_api_key(key_path: str = "keys/openai-key/key.env") -> str:
-    """Load API key from file or environment variable"""
-    # First try environment variable
-    api_key = os.getenv("OPENAI_API_KEY")
-    if api_key:
-        return api_key
-    
-    # Fall back to file
-    if os.path.exists(key_path):
-        with open(key_path) as f:
-            return f.read().strip()
-    
-    raise FileNotFoundError(
-        f"OpenAI API key not found. Please either:\n"
-        f"1. Set the OPENAI_API_KEY environment variable, or\n"
-        f"2. Create the file '{key_path}' containing your API key"
-    )
+from smolagents import VLLMServerModel, VLLMModel
 
 
 def setup_model(
-    model_type: str = "openai", 
+    model_type: str = "vllm", 
     model_id: str = None, 
     fine_tuned: bool = False,
     local_device_id: int = -1,
     lora_path: str = None,
     **kwargs
-) -> Union[OpenAIServerModel, VLLMServerModel, VLLMModel]:
+) -> Union[VLLMServerModel, VLLMModel]:
     """
     Initialize a model for experiments
     
     Args:
-        model_type: Type of model to use ("openai" or "vllm")
-        model_id: Model ID to use (e.g., gpt-4o-mini, Qwen/Qwen2.5-7B-Instruct)
+        model_type: Type of model to use ("vllm")
+        model_id: Model ID to use (e.g., Qwen/Qwen2.5-7B-Instruct)
         fine_tuned: Whether to use a fine-tuned model
         **kwargs: Additional keyword arguments for model initialization
     
@@ -48,21 +28,11 @@ def setup_model(
         Initialized model
     """
     default_models = {
-        "openai": "gpt-4o-mini",
         "vllm": "Qwen/Qwen2.5-7B-Instruct",
     }
     model_id = model_id or default_models.get(model_type)    
     if model_type == "openai":
-        # It is possible that api_base and api_key are provided in kwargs
-        # In this case, we need to remove them from kwargs  
-        _api_base = kwargs.pop("api_base", None)
-        _api_key = kwargs.pop("api_key", None)
-        api_key = load_api_key()
-        return OpenAIServerModel(
-            model_id=model_id,
-            api_key=api_key,
-            **kwargs
-        )
+        raise ValueError("OpenAI-backed models are disabled to avoid OpenAI API calls. Use model_type='vllm'.")
     elif model_type == "vllm":
         if fine_tuned:
             if int(local_device_id) >= 0:

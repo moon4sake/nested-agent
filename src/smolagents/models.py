@@ -1105,6 +1105,10 @@ class OpenAIServerModel(ApiModel):
         flatten_messages_as_text: bool = False,
         **kwargs,
     ):
+        raise ValueError(
+            "OpenAIServerModel is disabled to avoid OpenAI API calls. "
+            "Use VLLMServerModel, LiteLLMModel, TransformersModel, or HfApiModel instead."
+        )
         if importlib.util.find_spec("openai") is None:
             raise ModuleNotFoundError(
                 "Please install 'openai' extra to use OpenAIServerModel: `pip install 'smolagents[openai]'`"
@@ -1186,6 +1190,10 @@ class AzureOpenAIServerModel(OpenAIServerModel):
         custom_role_conversions: Optional[Dict[str, str]] = None,
         **kwargs,
     ):
+        raise ValueError(
+            "AzureOpenAIServerModel is disabled to avoid OpenAI API calls. "
+            "Use VLLMServerModel, LiteLLMModel, TransformersModel, or HfApiModel instead."
+        )
         if importlib.util.find_spec("openai") is None:
             raise ModuleNotFoundError(
                 "Please install 'openai' extra to use AzureOpenAIServerModel: `pip install 'smolagents[openai]'`"
