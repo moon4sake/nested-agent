@@ -9,9 +9,22 @@ from smolagents import OpenAIServerModel, VLLMServerModel, VLLMModel
 
 
 def load_api_key(key_path: str = "keys/openai-key/key.env") -> str:
-    """Load API key from file"""
-    with open(key_path) as f:
-        return f.read().strip()
+    """Load API key from file or environment variable"""
+    # First try environment variable
+    api_key = os.getenv("OPENAI_API_KEY")
+    if api_key:
+        return api_key
+    
+    # Fall back to file
+    if os.path.exists(key_path):
+        with open(key_path) as f:
+            return f.read().strip()
+    
+    raise FileNotFoundError(
+        f"OpenAI API key not found. Please either:\n"
+        f"1. Set the OPENAI_API_KEY environment variable, or\n"
+        f"2. Create the file '{key_path}' containing your API key"
+    )
 
 
 def setup_model(

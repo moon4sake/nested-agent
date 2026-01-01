@@ -162,26 +162,6 @@ def main(args):
     train_dataset = None
     for _train_filepath in args.train_filepath:
         _train_dataset = preprocess_sft_dataset(args.solution_type, _train_filepath)
-        # #region agent log
-        import json
-        debug_info = {
-            "location": "finetune_sft.py:164",
-            "message": "After preprocess_sft_dataset",
-            "data": {
-                "dataset_type": str(type(_train_dataset)),
-                "dataset_len": len(_train_dataset) if hasattr(_train_dataset, "__len__") else "N/A",
-                "first_item_type": str(type(_train_dataset[0])) if len(_train_dataset) > 0 else "empty",
-                "first_item_keys": list(_train_dataset[0].keys()) if len(_train_dataset) > 0 and isinstance(_train_dataset[0], dict) else "not_dict",
-                "first_item_sample": str(_train_dataset[0])[:300] if len(_train_dataset) > 0 else "empty"
-            },
-            "timestamp": __import__("time").time(),
-            "sessionId": "debug-session",
-            "runId": "pre-fix",
-            "hypothesisId": "A"
-        }
-        with open("/mnt/home2/moonseok/nested-agent/.cursor/debug.log", "a") as f:
-            f.write(json.dumps(debug_info) + "\n")
-        # #endregion
         if train_dataset:
             train_dataset = concatenate_datasets([train_dataset, _train_dataset])
         else:
@@ -230,26 +210,6 @@ def main(args):
             raise ValueError(f"Dataset items must be dictionaries, but got {type(first_item)}: {first_item}")
         if "messages" not in first_item:
             raise ValueError(f"Dataset items must have 'messages' key, but got keys: {list(first_item.keys())}")
-        # #region agent log
-        import json
-        debug_info = {
-            "location": "finetune_sft.py:185",
-            "message": "After slicing dataset",
-            "data": {
-                "dataset_type": str(type(train_dataset)),
-                "dataset_len": len(train_dataset) if hasattr(train_dataset, "__len__") else "N/A",
-                "first_item_type": str(type(train_dataset[0])) if len(train_dataset) > 0 else "empty",
-                "first_item_keys": list(train_dataset[0].keys()) if len(train_dataset) > 0 and isinstance(train_dataset[0], dict) else "not_dict",
-                "first_item_sample": str(train_dataset[0])[:300] if len(train_dataset) > 0 else "empty"
-            },
-            "timestamp": __import__("time").time(),
-            "sessionId": "debug-session",
-            "runId": "pre-fix",
-            "hypothesisId": "B"
-        }
-        with open("/mnt/home2/moonseok/nested-agent/.cursor/debug.log", "a") as f:
-            f.write(json.dumps(debug_info) + "\n")
-        # #endregion
 
     if args.max_eval_samples is not None and eval_dataset is not None:
         # Use select() instead of slicing to ensure we get a Dataset, not a dict

@@ -1,39 +1,52 @@
 # # install
 # pip install -e .[distill]
 
-DEVICE=7
+# Add project root to PYTHONPATH so exps_research can be imported
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+export PYTHONPATH="$SCRIPT_DIR:$PYTHONPATH"
+
+#########################################################
+# OpenAI API key should be set via environment variable or key file
+# export OPENAI_API_KEY="your-key-here"  # Or set it in your environment
+#########################################################
+
+Availabe_Devices=(4 5 6 7)
+# Set CUDA_VISIBLE_DEVICES to all available devices so workers can use different GPUs
+# Workers will use local_device_id as index into this list (0->GPU4, 1->GPU5, etc.)
+export CUDA_VISIBLE_DEVICES=$(IFS=,; echo "${Availabe_Devices[*]}")
+DEVICE=${Availabe_Devices[-1]}  # Keep for backward compatibility with scripts that use $DEVICE
 MODEL_ID="Qwen/Qwen2.5-0.5B-Instruct"
 LORA_DIR="training_outputs/qwen-0.5B-instruct/agent_toy"
-QA_DATASETS=(data_processor/qa_dataset/test/*.json)
+# QA_DATASETS=(data_processor/qa_dataset/test/*.json)
 MATH_DATASETS=(data_processor/math_dataset/test/*.json)
 
 run_unified_eval() {
   local model_id=$1
   local lora_dir=$2
 
-  for dataset in "${QA_DATASETS[@]}"; do
-    if [[ -n "$lora_dir" ]]; then
-      CUDA_VISIBLE_DEVICES=$DEVICE python exps_research/unified_framework/run_experiment.py \
-        --experiment_type agent \
-        --model_type vllm \
-        --model_id "$model_id" \
-        --fine_tuned \
-        --lora_folder "$lora_dir" \
-        --use_local_model \
-        --data_path "$dataset"
-    else
-      CUDA_VISIBLE_DEVICES=$DEVICE python exps_research/unified_framework/run_experiment.py \
-        --experiment_type agent \
-        --model_type vllm \
-        --model_id "$model_id" \
-        --use_local_model \
-        --data_path "$dataset"
-    fi
-  done
+#   for dataset in "${QA_DATASETS[@]}"; do
+#     if [[ -n "$lora_dir" ]]; then
+#       CUDA_VISIBLE_DEVICES=$DEVICE python exps_research/unified_framework/run_experiment.py \
+#         --experiment_type agent \
+#         --model_type vllm \
+#         --model_id "$model_id" \
+#         --fine_tuned \
+#         --lora_folder "$lora_dir" \
+#         --use_local_model \
+#         --data_path "$dataset"
+#     else
+#       CUDA_VISIBLE_DEVICES=$DEVICE python exps_research/unified_framework/run_experiment.py \
+#         --experiment_type agent \
+#         --model_type vllm \
+#         --model_id "$model_id" \
+#         --use_local_model \
+#         --data_path "$dataset"
+#     fi
+#   done
 
   for dataset in "${MATH_DATASETS[@]}"; do
     if [[ -n "$lora_dir" ]]; then
-      CUDA_VISIBLE_DEVICES=$DEVICE python exps_research/unified_framework/run_experiment.py \
+      python exps_research/unified_framework/run_experiment.py \
         --experiment_type reasoning \
         --task_type math \
         --model_type vllm \
@@ -43,7 +56,7 @@ run_unified_eval() {
         --use_local_model \
         --data_path "$dataset"
     else
-      CUDA_VISIBLE_DEVICES=$DEVICE python exps_research/unified_framework/run_experiment.py \
+      python exps_research/unified_framework/run_experiment.py \
         --experiment_type reasoning \
         --task_type math \
         --model_type vllm \
@@ -92,15 +105,16 @@ PY
 run_unified_eval "$MODEL_ID" ""
 
 # (2) baseline agent-distilled full
-CUDA_VISIBLE_DEVICES=$DEVICE bash scripts/training/train_agent_toy.sh
+# Use first available GPU for training (GPU 4 when CUDA_VISIBLE_DEVICES=4,5,6,7)
+CUDA_VISIBLE_DEVICES=${Availabe_Devices[0]} bash scripts/training/train_agent_toy.sh
 run_unified_eval "$MODEL_ID" "$LORA_DIR"
 
 # (3) variant (i) subnet-only LoRA
-CUDA_VISIBLE_DEVICES=$DEVICE bash scripts/training/train_subnet_only_toy.sh
+CUDA_VISIBLE_DEVICES=${Availabe_Devices[0]} bash scripts/training/train_subnet_only_toy.sh
 for dataset in "${MATH_DATASETS[@]}"; do
   dataset_base=$(basename "$dataset" .json)
   output_path="training_outputs/nested_subnet/subnet_only_${dataset_base}.json"
-  CUDA_VISIBLE_DEVICES=$DEVICE python exps_research/nested_subnet/disagreement_infer.py \
+  python exps_research/nested_subnet/disagreement_infer.py \
     --model_name "$MODEL_ID" \
     --adapter_path "training_outputs/nested_subnet/subnet_only" \
     --mode subnet_only \
@@ -113,11 +127,11 @@ for dataset in "${MATH_DATASETS[@]}"; do
 done
 
 # (4) variant (ii) joint preserve
-CUDA_VISIBLE_DEVICES=$DEVICE bash scripts/training/train_joint_preserve_toy.sh
+CUDA_VISIBLE_DEVICES=${Availabe_Devices[0]} bash scripts/training/train_joint_preserve_toy.sh
 for dataset in "${MATH_DATASETS[@]}"; do
   dataset_base=$(basename "$dataset" .json)
   output_path="training_outputs/nested_subnet/joint_preserve_${dataset_base}.json"
-  CUDA_VISIBLE_DEVICES=$DEVICE python exps_research/nested_subnet/disagreement_infer.py \
+  python exps_research/nested_subnet/disagreement_infer.py \
     --model_name "training_outputs/nested_subnet/joint_preserve" \
     --adapter_path "" \
     --mode joint_preserve \

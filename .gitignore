@@ -1,3 +1,7 @@
 # Training outputs
 training_outputs/
+logs/
+
+# API keys (keep secrets safe!)
+keys/
 

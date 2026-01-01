@@ -22,9 +22,24 @@ class ResponseFormat(BaseModel):
     score: int
 
 def load_api_key() -> str:
-    """Load OpenAI API key from file"""
-    with open("keys/openai-key/key.env") as f:
-        return f.read().strip()
+    """Load OpenAI API key from file or environment variable"""
+    import os
+    # First try environment variable
+    api_key = os.getenv("OPENAI_API_KEY")
+    if api_key:
+        return api_key
+    
+    # Fall back to file
+    key_path = "keys/openai-key/key.env"
+    if os.path.exists(key_path):
+        with open(key_path) as f:
+            return f.read().strip()
+    
+    raise FileNotFoundError(
+        f"OpenAI API key not found. Please either:\n"
+        f"1. Set the OPENAI_API_KEY environment variable, or\n"
+        f"2. Create the file '{key_path}' containing your API key"
+    )
 
 def setup_scoring_model() -> OpenAIServerModel:
     """Initialize the OpenAI model for scoring"""
