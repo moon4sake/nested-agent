@@ -159,7 +159,7 @@ def run_experiment():
         model_kwargs['top_k'] = args.top_k
     if args.lora_folder and args.use_local_model:
         model_kwargs['lora_path'] = args.lora_folder
-    if args.model_type == "vllm":
+    if args.model_type == "vllm" and args.use_local_model:
         model_kwargs['gpu_memory_utilization'] = args.gpu_memory_utilization
 
     # Additional experiment-specific args
@@ -172,6 +172,7 @@ def run_experiment():
             additional_postfix.append("duckduckgo")
         extra_kwargs["max_steps"] = args.max_steps
         extra_kwargs["use_planning"] = args.use_planning
+        extra_kwargs["use_local_model"] = args.use_local_model
         if args.use_planning:
             additional_postfix.append("planning")
 
