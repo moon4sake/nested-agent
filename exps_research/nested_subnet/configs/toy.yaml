@@ -1,0 +1,7 @@
+model_name: Qwen/Qwen2.5-0.5B-Instruct
+sub_layers: 8
+prompt: "Action: compute 2+2 using python"
+max_new_tokens: 64
+subnet_adapter_path: training_outputs/nested_subnet/subnet_only
+joint_model_path: training_outputs/nested_subnet/joint_preserve
+agent_distilled_path: training_outputs/qwen-0.5B-instruct/agent_toy
