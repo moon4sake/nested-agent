@@ -5,8 +5,9 @@ set -x
 
 MODEL=${1:-"Qwen/Qwen2.5-0.5B-Instruct"}
 DATASET=${2:-"agent-distillation/Qwen2.5-32B-Instruct_agent_trajectories_2k"}
+CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-0}
 
-python exps_research/finetune_sft.py \
+CUDA_VISIBLE_DEVICES=$CUDA_VISIBLE_DEVICES python exps_research/finetune_sft.py \
   --model_name "$MODEL" \
   --num_epochs 1 \
   --batch_size 1 \

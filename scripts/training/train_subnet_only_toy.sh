@@ -5,8 +5,9 @@ set -x
 
 MODEL=${1:-"Qwen/Qwen2.5-0.5B-Instruct"}
 OUTPUT_DIR=${2:-"training_outputs/nested_subnet/subnet_only"}
+CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-0}
 
-python exps_research/nested_subnet/train_subnet_only.py \
+CUDA_VISIBLE_DEVICES=$CUDA_VISIBLE_DEVICES python exps_research/nested_subnet/train_subnet_only.py \
   --model_name "$MODEL" \
   --sub_layers 8 \
   --output_dir "$OUTPUT_DIR" \
