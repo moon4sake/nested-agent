@@ -48,7 +48,12 @@ def main(args: argparse.Namespace) -> None:
         device=device,
     )
     full_model, tokenizer = load_full_model_and_tokenizer(spec)
-    subnet = build_subnet(full_model, args.sub_layers)
+    subnet = build_subnet(
+        full_model,
+        args.sub_layers,
+        start_layer=args.sub_start,
+        layer_stride=args.sub_stride,
+    )
 
     ref_model, _ = load_full_model_and_tokenizer(spec)
     ref_model.eval()
@@ -117,6 +122,8 @@ def main(args: argparse.Namespace) -> None:
         {
             "model_name": args.model_name,
             "sub_layers": args.sub_layers,
+            "sub_start": args.sub_start,
+            "sub_stride": args.sub_stride,
             "variant": "joint_preserve",
             "beta_preserve": args.beta_preserve,
             "alpha_kd": args.alpha_kd,
@@ -128,6 +135,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--model_name", default="Qwen/Qwen2.5-0.5B-Instruct")
     parser.add_argument("--sub_layers", type=int, default=8)
+    parser.add_argument("--sub_start", type=int, default=0)
+    parser.add_argument("--sub_stride", type=int, default=1)
     parser.add_argument("--output_dir", required=True)
     parser.add_argument("--max_train_samples", type=int, default=64)
     parser.add_argument("--max_gen_samples", type=int, default=1000)

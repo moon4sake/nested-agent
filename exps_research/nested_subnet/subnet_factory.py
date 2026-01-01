@@ -84,12 +84,28 @@ def _unwrap_base_model(model: PreTrainedModel) -> PreTrainedModel:
     return model
 
 
-def build_subnet(full_model: PreTrainedModel, sub_layers: int) -> PreTrainedModel:
+def build_subnet(
+    full_model: PreTrainedModel,
+    sub_layers: int,
+    start_layer: int = 0,
+    layer_stride: int = 1,
+) -> PreTrainedModel:
     base_model = _unwrap_base_model(full_model)
     full_backbone = _get_backbone(base_model)
     full_layers = _get_layers(full_backbone)
     if sub_layers > len(full_layers):
         raise ValueError(f"sub_layers={sub_layers} exceeds full depth {len(full_layers)}")
+    if start_layer < 0:
+        raise ValueError(f"start_layer={start_layer} must be non-negative")
+    if layer_stride <= 0:
+        raise ValueError(f"layer_stride={layer_stride} must be positive")
+
+    indices = [start_layer + idx * layer_stride for idx in range(sub_layers)]
+    max_index = max(indices, default=-1)
+    if max_index >= len(full_layers):
+        raise ValueError(
+            f"subnet indices exceed full depth: max={max_index}, total={len(full_layers)}"
+        )
 
     sub_config = copy.deepcopy(base_model.config)
     _set_num_layers(sub_config, sub_layers)
@@ -97,7 +113,8 @@ def build_subnet(full_model: PreTrainedModel, sub_layers: int) -> PreTrainedMode
     sub_backbone = _get_backbone(sub_model)
 
     _share_backbone_parts(full_backbone, sub_backbone)
-    _set_layers(sub_backbone, torch.nn.ModuleList(full_layers[:sub_layers]))
+    selected_layers = [full_layers[idx] for idx in indices]
+    _set_layers(sub_backbone, torch.nn.ModuleList(selected_layers))
 
     if hasattr(sub_model, "lm_head") and hasattr(base_model, "lm_head"):
         sub_model.lm_head = base_model.lm_head

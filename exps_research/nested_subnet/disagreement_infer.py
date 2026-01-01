@@ -52,12 +52,17 @@ def main(args: argparse.Namespace) -> None:
     base_model.to(args.device)
 
     if args.policy in {"sub_only", "disagreement_escalate"} and args.mode != "baseline_full":
-        sub_model = build_subnet(base_model, args.sub_layers)
+        sub_model = build_subnet(
+            base_model,
+            args.sub_layers,
+            start_layer=args.sub_start,
+            layer_stride=args.sub_stride,
+        )
     else:
         sub_model = None
 
     if args.adapter_path:
-        set_adapter_enabled(base_model, args.mode != "baseline_full")
+        set_adapter_enabled(base_model, True)
 
     questions = load_math_questions(args.eval_path, args.max_eval_samples)
     results = []
@@ -135,6 +140,8 @@ if __name__ == "__main__":
     parser.add_argument("--mode", default="baseline_full", choices=["baseline_full", "subnet_only", "joint_preserve"])
     parser.add_argument("--policy", default="sub_only", choices=["sub_only", "disagreement_escalate"])
     parser.add_argument("--sub_layers", type=int, default=8)
+    parser.add_argument("--sub_start", type=int, default=0)
+    parser.add_argument("--sub_stride", type=int, default=1)
     parser.add_argument("--K", type=int, default=4)
     parser.add_argument("--tau", type=float, default=1.5)
     parser.add_argument("--temperature", type=float, default=0.4)

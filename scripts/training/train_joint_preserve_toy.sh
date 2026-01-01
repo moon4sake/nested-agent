@@ -5,11 +5,16 @@ set -x
 
 MODEL=${1:-"Qwen/Qwen2.5-0.5B-Instruct"}
 OUTPUT_DIR=${2:-"training_outputs/nested_subnet/joint_preserve"}
+SUB_LAYERS=${3:-8}
+SUB_START=${4:-0}
+SUB_STRIDE=${5:-1}
 CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-0}
 
 CUDA_VISIBLE_DEVICES=$CUDA_VISIBLE_DEVICES python exps_research/nested_subnet/train_joint_preserve.py \
   --model_name "$MODEL" \
-  --sub_layers 8 \
+  --sub_layers "$SUB_LAYERS" \
+  --sub_start "$SUB_START" \
+  --sub_stride "$SUB_STRIDE" \
   --output_dir "$OUTPUT_DIR" \
   --max_train_samples 64 \
   --max_gen_samples 1000 \
