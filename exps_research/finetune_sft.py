@@ -175,12 +175,19 @@ def main(args):
     else:
         eval_dataset = None
 
-    if args.dataset_size > 0:
-        train_dataset = train_dataset[:args.dataset_size]
-
     data_module = {
         "train_dataset": train_dataset
     }
+    dataset_size = args.dataset_size
+    if args.max_train_samples is not None:
+        dataset_size = args.max_train_samples
+    if dataset_size > 0:
+        train_dataset = train_dataset[:dataset_size]
+        data_module["train_dataset"] = train_dataset
+
+    if args.max_eval_samples is not None and eval_dataset is not None:
+        eval_dataset = eval_dataset[: args.max_eval_samples]
+        data_module["eval_dataset"] = eval_dataset
 
     print("# Train Dataset: ", len(data_module["train_dataset"]))
     if "eval_dataset" in data_module.keys():
@@ -272,6 +279,8 @@ if __name__ == "__main__":
     parser.add_argument("--postfix", default="", type=str)
     parser.add_argument("--full_finetuning", action='store_true')
     parser.add_argument("--dataset_size", default=-1, type=int)
+    parser.add_argument("--max_train_samples", default=None, type=int)
+    parser.add_argument("--max_eval_samples", default=None, type=int)
     parser.add_argument("--solution_type", type=str, default="agent", choices=["cot", "reasoning", "agent"])
 
     parser.add_argument(
