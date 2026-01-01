@@ -17,6 +17,7 @@ declare -A DATASETS=(
   ["2wiki"]="data_processor/qa_dataset/test/2wikimultihopqa_500_20250511.json"
   ["olymath"]="data_processor/math_dataset/test/olymath_200_20250511.json"
 )
+MATH_DATASETS=("math" "aime" "gsm" "olymath")
 
 MAX_TOKENS=1024
 RETRIEVER_CONDA_ENV="retriever"
@@ -106,6 +107,9 @@ for dataset in "${!DATASETS[@]}"; do
     --seed 42 \
     --verbose \
     --use_single_endpoint"
+  if [[ " ${MATH_DATASETS[*]} " =~ " ${dataset} " ]]; then
+    AGENT_CMD="$AGENT_CMD --search_engine_type none"
+  fi
   eval $AGENT_CMD
 done
 

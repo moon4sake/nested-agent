@@ -27,6 +27,7 @@ declare -A DATASETS=(
   ["2wiki"]="data_processor/qa_dataset/test/2wikimultihopqa_500_20250511.json"
   ["olymath"]="data_processor/math_dataset/test/olymath_200_20250511.json"
 )
+MATH_DATASETS=("math" "aime" "gsm" "olymath")
 
 PIDS=()
 
@@ -125,6 +126,9 @@ for dataset in "${!DATASETS[@]}"; do
 
   if [ -n "$LORA_PATH" ]; then
     AGENT_CMD="$AGENT_CMD --fine_tuned --lora_folder \"$LORA_PATH\""
+  fi
+  if [[ " ${MATH_DATASETS[*]} " =~ " ${dataset} " ]]; then
+    AGENT_CMD="$AGENT_CMD --search_engine_type none"
   fi
 
   eval $AGENT_CMD
