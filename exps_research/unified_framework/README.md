@@ -63,7 +63,7 @@ Both experiment types support the following common parameters:
 ## Experiment-specific Parameters
 
 ### Agent Experiments
-- `--search_engine_type`: Type of search engine tool to use (`wikipedia` or `duckduckgo`)
+- `--search_engine_type`: Type of search engine tool to use (`wikipedia`, `duckduckgo`, or `none` for no retrieval tools)
 - `--max_steps`: Maximum number of steps for the agent (default: 5)
 
 ## Extending the Framework

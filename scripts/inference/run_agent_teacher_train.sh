@@ -12,6 +12,7 @@ declare -A DATASETS=(
   ["math"]="data_processor/math_dataset/train/math_1000_20250414.json"
   ["math2"]="data_processor/math_dataset/train/math_medium_1000_20250430.json"
 )
+MATH_DATASETS=("math" "math2")
 
 # Update paths as needed
 declare -A PREFIXS=(
@@ -118,6 +119,9 @@ for dataset in "${!DATASETS[@]}"; do
     AGENT_CMD="$AGENT_CMD --search_engine_type duckduckgo"
   else
     AGENT_CMD="$AGENT_CMD --multithreading --use_process_pool --use_single_endpoint"
+    if [[ " ${MATH_DATASETS[*]} " =~ " ${dataset} " ]]; then
+      AGENT_CMD="$AGENT_CMD --search_engine_type none"
+    fi
   fi
 
   if [ "$USE_PREFIX" = true ]; then
