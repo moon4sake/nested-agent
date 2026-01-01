@@ -4,7 +4,7 @@
 DEVICE=7
 MODEL_ID="Qwen/Qwen2.5-0.5B-Instruct"
 LORA_DIR="training_outputs/qwen-0.5B-instruct/agent_toy"
-QA_DATASETS=(data_processor/qa_dataset/test/*.json)
+# QA_DATASETS=(data_processor/qa_dataset/test/*.json)
 MATH_DATASETS=(data_processor/math_dataset/test/*.json)
 TOTAL_LAYERS=$(python - <<PY
 from transformers import AutoConfig
@@ -29,25 +29,25 @@ run_unified_eval() {
   local model_id=$1
   local lora_dir=$2
 
-  for dataset in "${QA_DATASETS[@]}"; do
-    if [[ -n "$lora_dir" ]]; then
-      CUDA_VISIBLE_DEVICES=$DEVICE python exps_research/unified_framework/run_experiment.py \
-        --experiment_type agent \
-        --model_type vllm \
-        --model_id "$model_id" \
-        --fine_tuned \
-        --lora_folder "$lora_dir" \
-        --use_local_model \
-        --data_path "$dataset"
-    else
-      CUDA_VISIBLE_DEVICES=$DEVICE python exps_research/unified_framework/run_experiment.py \
-        --experiment_type agent \
-        --model_type vllm \
-        --model_id "$model_id" \
-        --use_local_model \
-        --data_path "$dataset"
-    fi
-  done
+#   for dataset in "${QA_DATASETS[@]}"; do
+#     if [[ -n "$lora_dir" ]]; then
+#       CUDA_VISIBLE_DEVICES=$DEVICE python exps_research/unified_framework/run_experiment.py \
+#         --experiment_type agent \
+#         --model_type vllm \
+#         --model_id "$model_id" \
+#         --fine_tuned \
+#         --lora_folder "$lora_dir" \
+#         --use_local_model \
+#         --data_path "$dataset"
+#     else
+#       CUDA_VISIBLE_DEVICES=$DEVICE python exps_research/unified_framework/run_experiment.py \
+#         --experiment_type agent \
+#         --model_type vllm \
+#         --model_id "$model_id" \
+#         --use_local_model \
+#         --data_path "$dataset"
+#     fi
+#   done
 
   for dataset in "${MATH_DATASETS[@]}"; do
     if [[ -n "$lora_dir" ]]; then
@@ -178,3 +178,10 @@ done
 # python exps_research/nested_subnet/sanity_test_toy.py
 
 # python exps_research/nested_subnet/sanity_test_toy.py
+
+
+
+CUDA_VISIBLE_DEVICES=4 bash toy_baseline_initial.sh
+CUDA_VISIBLE_DEVICES=5 bash toy_baseline_agent_distilled.sh
+CUDA_VISIBLE_DEVICES=6 bash toy_subnet_only.sh
+CUDA_VISIBLE_DEVICES=7 bash toy_joint_preserve.sh

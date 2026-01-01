@@ -168,8 +168,12 @@ def process_entry(args):
     """
     if task_type == "fact":
         eval_func = evaluate_factual_answer
+        # Fact tasks require the model
+        if model is None:
+            raise ValueError("Model is required for fact task evaluation")
     elif task_type == "math":
         eval_func = evaluate_math_answer
+        # Math tasks don't need the model (it's ignored in evaluate_math_answer)
     else:
         raise NotImplementedError
 
@@ -226,8 +230,13 @@ def score_qa_results(
                 continue # Invalid entry
             entries.append(entry)
 
-    # Create a pool of models
-    models = [setup_scoring_model() for _ in range(max_workers)]
+    # Only create models if we need them (fact tasks use OpenAI, math tasks don't)
+    if task_type == "math":
+        # Math tasks don't need OpenAI models - they use direct comparison
+        models = [None] * max_workers
+    else:
+        # Create a pool of models for fact tasks
+        models = [setup_scoring_model() for _ in range(max_workers)]
     # Process entries in parallel
     if single_thread:
         # Process entries sequentially with a for-loop
