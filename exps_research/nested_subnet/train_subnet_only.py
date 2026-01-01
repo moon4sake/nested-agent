@@ -58,7 +58,12 @@ def main(args: argparse.Namespace) -> None:
     full_model = get_peft_model(full_model, peft_config)
     full_model.print_trainable_parameters()
 
-    subnet = build_subnet(full_model, args.sub_layers)
+    subnet = build_subnet(
+        full_model,
+        args.sub_layers,
+        start_layer=args.sub_start,
+        layer_stride=args.sub_stride,
+    )
     set_adapter_enabled(full_model, True)
 
     train_data = load_toy_tool_dataset(args.max_train_samples)
@@ -95,6 +100,8 @@ def main(args: argparse.Namespace) -> None:
         {
             "model_name": args.model_name,
             "sub_layers": args.sub_layers,
+            "sub_start": args.sub_start,
+            "sub_stride": args.sub_stride,
             "variant": "subnet_only_lora",
         },
     )
@@ -104,6 +111,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--model_name", default="Qwen/Qwen2.5-0.5B-Instruct")
     parser.add_argument("--sub_layers", type=int, default=8)
+    parser.add_argument("--sub_start", type=int, default=0)
+    parser.add_argument("--sub_stride", type=int, default=1)
     parser.add_argument("--output_dir", required=True)
     parser.add_argument("--max_train_samples", type=int, default=64)
     parser.add_argument("--seed", type=int, default=42)
