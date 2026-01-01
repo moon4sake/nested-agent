@@ -41,6 +41,7 @@ run_unified_eval() {
     if [[ -n "$lora_dir" ]]; then
       CUDA_VISIBLE_DEVICES=$DEVICE python exps_research/unified_framework/run_experiment.py \
         --experiment_type agent \
+        --task_type math \
         --model_type vllm \
         --model_id "$model_id" \
         --fine_tuned \
@@ -51,6 +52,7 @@ run_unified_eval() {
     else
       CUDA_VISIBLE_DEVICES=$DEVICE python exps_research/unified_framework/run_experiment.py \
         --experiment_type agent \
+        --task_type math \
         --model_type vllm \
         --model_id "$model_id" \
         --use_local_model \

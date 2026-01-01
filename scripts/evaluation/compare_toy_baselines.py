@@ -28,7 +28,7 @@ def load_dataset_answers(dataset_path: Path) -> Dict[int, str]:
     return {row["id"]: row["answer"] for row in data.get("examples", [])}
 
 
-def accuracy_from_scored_jsonl(path: Path) -> Optional[Dict[str, float]]:
+def accuracy_from_agent_logs(path: Path) -> Optional[Dict[str, float]]:
     if not path.exists():
         return None
     total = 0
@@ -37,9 +37,12 @@ def accuracy_from_scored_jsonl(path: Path) -> Optional[Dict[str, float]]:
         if not line.strip():
             continue
         row = json.loads(line)
+        predicted = row.get("generated_answer", "")
+        gold = row.get("true_answer", "")
+        if isinstance(predicted, str) and "boxed" in predicted:
+            predicted = extract_answer(predicted)
+        correct += int(math_equal(str(predicted), str(gold), timeout=True))
         total += 1
-        if row.get("score"):
-            correct += 1
     accuracy = correct / total if total else 0.0
     return {"accuracy": accuracy, "correct": correct, "total": total}
 
@@ -63,11 +66,13 @@ def accuracy_from_generation_json(path: Path, answers: Dict[int, str]) -> Option
     return {"accuracy": accuracy, "correct": correct, "total": total}
 
 
-def find_scored_file(folder: Path, dataset_name: str) -> Optional[Path]:
-    dataset_dir = folder / dataset_name / "evaluations"
+def find_latest_jsonl(folder: Path, dataset_name: str) -> Optional[Path]:
+    dataset_dir = folder / dataset_name
     if not dataset_dir.exists():
         return None
-    candidates = sorted(dataset_dir.glob("*_scored.jsonl"))
+    candidates = sorted(
+        [path for path in dataset_dir.glob("*.jsonl") if path.parent.name != "evaluations"]
+    )
     if not candidates:
         return None
     return candidates[-1]
@@ -78,8 +83,8 @@ def summarize_agent_baseline(log_folder: Path) -> Dict[str, Dict[str, float]]:
     accuracies: List[float] = []
     for dataset_path in DATASETS:
         dataset_name = f"{dataset_path.stem}_test"
-        scored_file = find_scored_file(log_folder, dataset_name)
-        metrics = accuracy_from_scored_jsonl(scored_file) if scored_file else None
+        log_file = find_latest_jsonl(log_folder, dataset_name)
+        metrics = accuracy_from_agent_logs(log_file) if log_file else None
         if metrics is None:
             results[dataset_path.stem] = {"accuracy": 0.0, "correct": 0, "total": 0}
         else:

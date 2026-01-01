@@ -271,10 +271,7 @@ def run_experiment():
 
     # Score results for reasoning experiments
     single_thread = args.task_type in ["math", "mmlu"]
-    if args.experiment_type == "reasoning":
-        do_extract_answer = args.task_type == "math"
-    else:
-        do_extract_answer = False
+    do_extract_answer = args.task_type == "math"
 
     output_file, score_stats = score_qa_results(
         paths["output_file"],
