@@ -158,7 +158,7 @@ def run_experiment():
     if args.top_k:
         model_kwargs['top_k'] = args.top_k
     if args.lora_folder and args.use_local_model:
-        model_kwargs['lora_folder'] = args.lora_folder
+        model_kwargs['lora_path'] = args.lora_folder
     if args.model_type == "vllm":
         model_kwargs['gpu_memory_utilization'] = args.gpu_memory_utilization
 
@@ -271,10 +271,7 @@ def run_experiment():
 
     # Score results for reasoning experiments
     single_thread = args.task_type in ["math", "mmlu"]
-    if args.experiment_type == "reasoning":
-        do_extract_answer = args.task_type == "math"
-    else:
-        do_extract_answer = False
+    do_extract_answer = args.task_type == "math"
 
     output_file, score_stats = score_qa_results(
         paths["output_file"],

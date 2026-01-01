@@ -14,6 +14,14 @@ from exps_research.nested_subnet.subnet_factory import (
     set_adapter_enabled,
 )
 
+AGENT_PROMPT_INSTRUCTION = (
+    "\n\nIMPORTANT: Always provide a 'Thought:' sequence, and a 'Code:\n```py' "
+    "sequence ending with '```<end_code>' sequence, else you will fail. For math "
+    "problems that are not multiple-choice, always output the final answer using "
+    "LaTeX \\boxed{} format. Provide the exact value (e.g., \\boxed{\\frac{9}{14}}), "
+    "not a decimal approximation (e.g., \\boxed{0.642857})."
+)
+
 
 def load_math_questions(path: str, max_samples: int) -> List[dict]:
     obj = json.loads(Path(path).read_text())
@@ -24,7 +32,7 @@ def load_math_questions(path: str, max_samples: int) -> List[dict]:
 
 
 def format_prompt(question: str) -> List[dict]:
-    return [{"role": "user", "content": question}]
+    return [{"role": "user", "content": f"{question}{AGENT_PROMPT_INSTRUCTION}"}]
 
 
 def generate_answer(model, tokenizer, messages, temperature, max_new_tokens, seed):
