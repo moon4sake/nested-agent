@@ -118,7 +118,7 @@ def set_adapter_enabled(model: PreTrainedModel, enabled: bool) -> None:
 
 
 def maybe_load_peft_adapter(model: PreTrainedModel, adapter_path: Optional[str]) -> PreTrainedModel:
-    if adapter_path is None:
+    if adapter_path is None or adapter_path == "":
         return model
     from peft import PeftModel
 

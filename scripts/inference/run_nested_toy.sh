@@ -29,6 +29,11 @@ else
   exit 1
 fi
 
+# Add project root to PYTHONPATH so exps_research can be imported
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+export PYTHONPATH="$PROJECT_ROOT:$PYTHONPATH"
+
 python exps_research/nested_subnet/disagreement_infer.py \
   --model_name "$MODEL_PATH" \
   --adapter_path "$ADAPTER_PATH" \

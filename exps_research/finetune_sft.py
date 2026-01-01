@@ -162,6 +162,26 @@ def main(args):
     train_dataset = None
     for _train_filepath in args.train_filepath:
         _train_dataset = preprocess_sft_dataset(args.solution_type, _train_filepath)
+        # #region agent log
+        import json
+        debug_info = {
+            "location": "finetune_sft.py:164",
+            "message": "After preprocess_sft_dataset",
+            "data": {
+                "dataset_type": str(type(_train_dataset)),
+                "dataset_len": len(_train_dataset) if hasattr(_train_dataset, "__len__") else "N/A",
+                "first_item_type": str(type(_train_dataset[0])) if len(_train_dataset) > 0 else "empty",
+                "first_item_keys": list(_train_dataset[0].keys()) if len(_train_dataset) > 0 and isinstance(_train_dataset[0], dict) else "not_dict",
+                "first_item_sample": str(_train_dataset[0])[:300] if len(_train_dataset) > 0 else "empty"
+            },
+            "timestamp": __import__("time").time(),
+            "sessionId": "debug-session",
+            "runId": "pre-fix",
+            "hypothesisId": "A"
+        }
+        with open("/mnt/home2/moonseok/nested-agent/.cursor/debug.log", "a") as f:
+            f.write(json.dumps(debug_info) + "\n")
+        # #endregion
         if train_dataset:
             train_dataset = concatenate_datasets([train_dataset, _train_dataset])
         else:
@@ -175,18 +195,68 @@ def main(args):
     else:
         eval_dataset = None
 
+    # Ensure train_dataset is a Dataset object, not a dict or string
+    from datasets import Dataset
+    if not isinstance(train_dataset, Dataset):
+        if isinstance(train_dataset, dict):
+            train_dataset = Dataset.from_list([train_dataset])
+        elif isinstance(train_dataset, (list, tuple)):
+            train_dataset = Dataset.from_list(train_dataset)
+        else:
+            raise ValueError(f"Unexpected train_dataset type: {type(train_dataset)}")
+    
     data_module = {
         "train_dataset": train_dataset
     }
     dataset_size = args.dataset_size
     if args.max_train_samples is not None:
         dataset_size = args.max_train_samples
-    if dataset_size > 0:
-        train_dataset = train_dataset[:dataset_size]
+    if dataset_size > 0 and dataset_size < len(train_dataset):
+        # Use select() instead of slicing to ensure we get a Dataset, not a dict
+        # Slicing with [:1] returns a dict when there's only 1 item
+        train_dataset = train_dataset.select(range(dataset_size))
         data_module["train_dataset"] = train_dataset
+    # Final check: ensure it's still a Dataset after any operations
+    if not isinstance(data_module["train_dataset"], Dataset):
+        if isinstance(data_module["train_dataset"], dict):
+            data_module["train_dataset"] = Dataset.from_list([data_module["train_dataset"]])
+        else:
+            raise ValueError(f"train_dataset is not a Dataset after processing: {type(data_module['train_dataset'])}")
+    
+    # Verify dataset items are dictionaries, not strings
+    if len(data_module["train_dataset"]) > 0:
+        first_item = data_module["train_dataset"][0]
+        if not isinstance(first_item, dict):
+            raise ValueError(f"Dataset items must be dictionaries, but got {type(first_item)}: {first_item}")
+        if "messages" not in first_item:
+            raise ValueError(f"Dataset items must have 'messages' key, but got keys: {list(first_item.keys())}")
+        # #region agent log
+        import json
+        debug_info = {
+            "location": "finetune_sft.py:185",
+            "message": "After slicing dataset",
+            "data": {
+                "dataset_type": str(type(train_dataset)),
+                "dataset_len": len(train_dataset) if hasattr(train_dataset, "__len__") else "N/A",
+                "first_item_type": str(type(train_dataset[0])) if len(train_dataset) > 0 else "empty",
+                "first_item_keys": list(train_dataset[0].keys()) if len(train_dataset) > 0 and isinstance(train_dataset[0], dict) else "not_dict",
+                "first_item_sample": str(train_dataset[0])[:300] if len(train_dataset) > 0 else "empty"
+            },
+            "timestamp": __import__("time").time(),
+            "sessionId": "debug-session",
+            "runId": "pre-fix",
+            "hypothesisId": "B"
+        }
+        with open("/mnt/home2/moonseok/nested-agent/.cursor/debug.log", "a") as f:
+            f.write(json.dumps(debug_info) + "\n")
+        # #endregion
 
     if args.max_eval_samples is not None and eval_dataset is not None:
-        eval_dataset = eval_dataset[: args.max_eval_samples]
+        # Use select() instead of slicing to ensure we get a Dataset, not a dict
+        if args.max_eval_samples >= len(eval_dataset):
+            eval_dataset = eval_dataset
+        else:
+            eval_dataset = eval_dataset.select(range(args.max_eval_samples))
         data_module["eval_dataset"] = eval_dataset
 
     print("# Train Dataset: ", len(data_module["train_dataset"]))
@@ -214,7 +284,7 @@ def main(args):
         num_train_epochs=args.num_epochs,
         learning_rate=args.lr,
         deepspeed=args.deepspeed,
-        fsdp=args.fsdp is not None,
+        fsdp=None if args.fsdp is None else [],
         fsdp_config=args.fsdp,
         # Strategy
         logging_steps=10,
@@ -251,6 +321,36 @@ def main(args):
             tokenizer=tokenizer
         )
 
+    # Final validation before SFTTrainer
+    from datasets import Dataset
+    # Ensure train_dataset is a Dataset, not a dict or string
+    if not isinstance(data_module["train_dataset"], Dataset):
+        if isinstance(data_module["train_dataset"], dict):
+            data_module["train_dataset"] = Dataset.from_list([data_module["train_dataset"]])
+        elif isinstance(data_module["train_dataset"], str):
+            raise ValueError(f"train_dataset is a string, not a Dataset. This should not happen.")
+        else:
+            raise ValueError(f"train_dataset is not a Dataset: {type(data_module['train_dataset'])}")
+    
+    # Verify dataset structure
+    if len(data_module["train_dataset"]) == 0:
+        raise ValueError("train_dataset is empty")
+    
+    # Check first item - use [0] instead of iter to avoid any iteration issues
+    try:
+        first_item = data_module["train_dataset"][0]
+        if not isinstance(first_item, dict):
+            raise ValueError(f"Dataset items must be dictionaries, but first item is {type(first_item)}: {first_item}")
+        if "messages" not in first_item:
+            raise ValueError(f"Dataset items must have 'messages' key, but first item has keys: {list(first_item.keys())}")
+        # Verify messages is a list, not a string
+        if not isinstance(first_item["messages"], list):
+            raise ValueError(f"Dataset item 'messages' must be a list, but got {type(first_item['messages'])}: {first_item['messages']}")
+    except (KeyError, IndexError) as e:
+        raise ValueError(f"Error accessing dataset item: {e}")
+    except Exception as e:
+        raise ValueError(f"Error checking dataset structure: {e}")
+    
     trainer = SFTTrainer(
         args.model_name if not model else model,
         args=train_args,
