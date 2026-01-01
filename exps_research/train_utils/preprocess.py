@@ -216,27 +216,6 @@ def preprocess_logs(log_path):
         
         messages = clean_messages(messages)
         messages[0]["content"] = system_prompt
-
-        # #region agent log
-        if i == 0:
-            import json as json_module
-            debug_info = {
-                "location": "preprocess.py:207",
-                "message": "Before appending to dataset",
-                "data": {
-                    "messages_type": str(type(messages)),
-                    "messages_is_list": isinstance(messages, list),
-                    "messages_len": len(messages) if isinstance(messages, list) else "N/A",
-                    "messages_sample": str(messages)[:300] if isinstance(messages, list) else str(messages)[:300]
-                },
-                "timestamp": __import__("time").time(),
-                "sessionId": "debug-session",
-                "runId": "pre-fix",
-                "hypothesisId": "F"
-            }
-            with open("/mnt/home2/moonseok/nested-agent/.cursor/debug.log", "a") as f:
-                f.write(json_module.dumps(debug_info) + "\n")
-        # #endregion
         
         # Ensure we're appending a dict with messages as a list
         if not isinstance(messages, list):
@@ -257,47 +236,7 @@ def preprocess_logs(log_path):
                 n_planning += 1
 
     print("##### Planning data", n_planning)
-    # #region agent log
-    import json as json_module
-    if len(dataset) > 0:
-        debug_info = {
-            "location": "preprocess.py:223",
-            "message": "Before Dataset.from_list",
-            "data": {
-                "dataset_len": len(dataset),
-                "first_item_type": str(type(dataset[0])),
-                "first_item_keys": list(dataset[0].keys()) if isinstance(dataset[0], dict) else "not_dict",
-                "first_item_sample": str(dataset[0])[:300]
-            },
-            "timestamp": __import__("time").time(),
-            "sessionId": "debug-session",
-            "runId": "pre-fix",
-            "hypothesisId": "D"
-        }
-        with open("/mnt/home2/moonseok/nested-agent/.cursor/debug.log", "a") as f:
-            f.write(json_module.dumps(debug_info) + "\n")
-    # #endregion
     dataset = Dataset.from_list(dataset)
-    # #region agent log
-    if len(dataset) > 0:
-        debug_info = {
-            "location": "preprocess.py:224",
-            "message": "After Dataset.from_list",
-            "data": {
-                "dataset_type": str(type(dataset)),
-                "dataset_len": len(dataset),
-                "first_item_type": str(type(dataset[0])),
-                "first_item_keys": list(dataset[0].keys()) if isinstance(dataset[0], dict) else "not_dict",
-                "first_item_sample": str(dataset[0])[:300]
-            },
-            "timestamp": __import__("time").time(),
-            "sessionId": "debug-session",
-            "runId": "pre-fix",
-            "hypothesisId": "E"
-        }
-        with open("/mnt/home2/moonseok/nested-agent/.cursor/debug.log", "a") as f:
-            f.write(json_module.dumps(debug_info) + "\n")
-    # #endregion
     return dataset
 
 # Preprocess logs for the reward modeling

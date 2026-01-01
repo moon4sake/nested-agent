@@ -437,7 +437,23 @@ class VLLMModel(Model):
         self.lora_path = kwargs.pop("lora_path", None)
 
         if int(local_device_id) >= 0:
-            os.environ["CUDA_VISIBLE_DEVICES"] = str(local_device_id)
+            # If CUDA_VISIBLE_DEVICES is already set, select the GPU at local_device_id index
+            # Otherwise, use local_device_id directly as the GPU ID
+            if "CUDA_VISIBLE_DEVICES" in os.environ:
+                visible_devices = os.environ["CUDA_VISIBLE_DEVICES"].split(",")
+                device_idx = int(local_device_id)
+                if device_idx < len(visible_devices):
+                    # Select the specific GPU from the visible devices list
+                    selected_gpu = visible_devices[device_idx].strip()
+                    os.environ["CUDA_VISIBLE_DEVICES"] = selected_gpu
+                else:
+                    raise ValueError(
+                        f"local_device_id {local_device_id} is out of range. "
+                        f"CUDA_VISIBLE_DEVICES has {len(visible_devices)} device(s): {visible_devices}"
+                    )
+            else:
+                # No CUDA_VISIBLE_DEVICES set, use local_device_id directly
+                os.environ["CUDA_VISIBLE_DEVICES"] = str(local_device_id)
 
         # Remove unnecessary keys if they exist
         for key in ("api_base", "api_key"):
@@ -447,14 +463,22 @@ class VLLMModel(Model):
 
         self.model_id = model_id
 
+        # Extract gpu_memory_utilization from kwargs, default to 0.5 if not specified
+        # Lower default to avoid OOM errors when GPU memory is limited
+        gpu_memory_utilization = kwargs.pop("gpu_memory_utilization", 0.5)
+        
         if self.lora_path:
             self.model = LLM(
                 model=model_id,
                 enable_lora=True,
-                max_lora_rank=64
+                max_lora_rank=64,
+                gpu_memory_utilization=gpu_memory_utilization
             )
         else:
-            self.model = LLM(model=model_id)
+            self.model = LLM(
+                model=model_id,
+                gpu_memory_utilization=gpu_memory_utilization
+            )
 
         self.tokenizer = get_tokenizer(model_id)
         self._is_vlm = False  # VLLMModel does not support vision models yet.

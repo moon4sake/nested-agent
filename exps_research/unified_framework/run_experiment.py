@@ -15,8 +15,8 @@ try:
 except ImportError:
     RICH_AVAILABLE = False
 
-# Change from absolute imports to relative imports to avoid circular reference
-from . import (
+# Use absolute imports to allow running as a script
+from exps_research.unified_framework import (
     setup_model,
     prepare_output_path,
     process_qa_experiment,
@@ -62,6 +62,7 @@ def run_experiment():
     parser.add_argument("--top_p", type=float)
     parser.add_argument("--top_k", type=int)
     parser.add_argument("--use_local_model", action='store_true', help="Use local model for reasoning experiments")
+    parser.add_argument("--gpu_memory_utilization", type=float, default=0.5, help="GPU memory utilization for vLLM (0.0 to 1.0, default: 0.5)")
 
     # Experiment type selection
     parser.add_argument("--experiment_type", type=str, choices=["agent", "reasoning"], required=True,
@@ -158,6 +159,8 @@ def run_experiment():
         model_kwargs['top_k'] = args.top_k
     if args.lora_folder and args.use_local_model:
         model_kwargs['lora_folder'] = args.lora_folder
+    if args.model_type == "vllm":
+        model_kwargs['gpu_memory_utilization'] = args.gpu_memory_utilization
 
     # Additional experiment-specific args
     extra_kwargs = {}
