@@ -158,7 +158,7 @@ def run_experiment():
     if args.top_k:
         model_kwargs['top_k'] = args.top_k
     if args.lora_folder and args.use_local_model:
-        model_kwargs['lora_folder'] = args.lora_folder
+        model_kwargs['lora_path'] = args.lora_folder
     if args.model_type == "vllm":
         model_kwargs['gpu_memory_utilization'] = args.gpu_memory_utilization
 

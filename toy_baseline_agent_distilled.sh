@@ -1,5 +1,5 @@
 #!/bin/bash
-# (2) baseline agent-distilled full
+# (2) baseline agent-distilled full (agent prompt)
 
 set -e
 
@@ -40,21 +40,21 @@ run_unified_eval() {
   for dataset in "${MATH_DATASETS[@]}"; do
     if [[ -n "$lora_dir" ]]; then
       CUDA_VISIBLE_DEVICES=$DEVICE python exps_research/unified_framework/run_experiment.py \
-        --experiment_type reasoning \
-        --task_type math \
+        --experiment_type agent \
         --model_type vllm \
         --model_id "$model_id" \
         --fine_tuned \
         --lora_folder "$lora_dir" \
         --use_local_model \
+        --suffix baseline_agent_distilled \
         --data_path "$dataset"
     else
       CUDA_VISIBLE_DEVICES=$DEVICE python exps_research/unified_framework/run_experiment.py \
-        --experiment_type reasoning \
-        --task_type math \
+        --experiment_type agent \
         --model_type vllm \
         --model_id "$model_id" \
         --use_local_model \
+        --suffix baseline_agent_distilled \
         --data_path "$dataset"
     fi
   done
@@ -65,4 +65,3 @@ CUDA_VISIBLE_DEVICES=$DEVICE bash scripts/training/train_agent_toy.sh
 
 # Run evaluation with fine-tuned model
 run_unified_eval "$MODEL_ID" "$LORA_DIR"
-
